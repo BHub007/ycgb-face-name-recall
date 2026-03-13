@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧠 Name Recall Trainer</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            background: #0f0c29;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 20px;
+            color: #fff;
+        }
+
+        .app {
+            width: 100%;
+            max-width: 480px;
+        }
+
+        /* ── Screens ── */
+        .screen { display: none; }
+        .screen.active { display: block; }
+
+        /* ── Card ── */
+        .card {
+            background: rgba(255,255,255,0.07);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 24px;
+            padding: 32px 28px;
+            margin-bottom: 16px;
+        }
+
+        /* ── Home screen ── */
+        .logo { font-size: 48px; margin-bottom: 8px; }
+        .game-title {
+            font-size: 28px;
+            font-weight: 800;
+            background: linear-gradient(90deg, #a78bfa, #60a5fa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 6px;
+        }
+        .game-subtitle { color: rgba(255,255,255,0.55); font-size: 14px; margin-bottom: 24px; }
+
+        .how-to { text-align: left; }
+        .how-to h3 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.4); margin-bottom: 14px; }
+        .step {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 12px;
+            font-size: 14px;
+            color: rgba(255,255,255,0.8);
+            line-height: 1.5;
+        }
+        .step-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+
+        .mode-row { display: flex; gap: 12px; margin-top: 24px; }
+
+        /* ── Buttons ── */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 14px;
+            font-size: 15px;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+            width: 100%;
+        }
+        .btn:hover { transform: translateY(-2px); }
+        .btn:active { transform: translateY(0); }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #7c3aed, #4f46e5);
+            color: white;
+            box-shadow: 0 4px 20px rgba(124,58,237,0.4);
+        }
+        .btn-primary:hover { box-shadow: 0 8px 28px rgba(124,58,237,0.55); }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.15);
+            box-shadow: none;
+        }
+        .btn-secondary:hover { background: rgba(255,255,255,0.18); }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            color: white;
+            box-shadow: 0 4px 16px rgba(220,38,38,0.35);
+        }
+
+        .btn-skip {
+            background: rgba(255,255,255,0.08);
+            color: rgba(255,255,255,0.6);
+            border: 1px solid rgba(255,255,255,0.1);
+            font-size: 13px;
+            padding: 10px 20px;
+            width: auto;
+        }
+        .btn-skip:hover { color: white; background: rgba(255,255,255,0.15); }
+
+        .btn-success {
+            background: linear-gradient(135deg, #059669, #047857);
+            color: white;
+            box-shadow: 0 4px 16px rgba(5,150,105,0.35);
+        }
+
+        /* ── Study screen ── */
+        .screen-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .screen-label {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: rgba(255,255,255,0.4);
+        }
+
+        .progress-dots {
+            display: flex;
+            gap: 6px;
+        }
+        .dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            transition: background 0.3s;
+        }
+        .dot.active { background: #a78bfa; }
+        .dot.done { background: rgba(167,139,250,0.4); }
+
+        .timer-ring {
+            position: relative;
+            width: 56px; height: 56px;
+            flex-shrink: 0;
+        }
+        .timer-ring svg { transform: rotate(-90deg); }
+        .timer-ring circle { fill: none; stroke-width: 4; }
+        .timer-track { stroke: rgba(255,255,255,0.1); }
+        .timer-fill { stroke: #a78bfa; stroke-linecap: round; transition: stroke-dashoffset 1s linear; }
+        .timer-num {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 800;
+            color: #a78bfa;
+        }
+
+        /* ── Face photo ── */
+        .face-wrap {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0 16px;
+        }
+        .face {
+            width: 160px; height: 160px;
+            border-radius: 50%;
+            overflow: hidden;
+            background: rgba(255,255,255,0.1);
+            border: 3px solid rgba(167,139,250,0.5);
+            box-shadow: 0 0 0 6px rgba(167,139,250,0.1), 0 12px 40px rgba(0,0,0,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 52px;
+        }
+        .face img { width: 100%; height: 100%; object-fit: cover; }
+
+        .person-name {
+            font-size: 30px;
+            font-weight: 800;
+            text-align: center;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #e2e8f0, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .person-fact {
+            text-align: center;
+            font-size: 14px;
+            color: rgba(255,255,255,0.6);
+            font-style: italic;
+            line-height: 1.5;
+            padding: 10px 16px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .study-actions { display: flex; gap: 10px; }
+
+        /* ── Recall screen ── */
+        .question-label {
+            text-align: center;
+            font-size: 13px;
+            font-weight: 600;
+            color: rgba(255,255,255,0.45);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+        }
+
+        /* Easy mode buttons */
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 16px 0;
+        }
+        .option-btn {
+            background: rgba(255,255,255,0.07);
+            border: 1.5px solid rgba(255,255,255,0.12);
+            border-radius: 14px;
+            padding: 14px 10px;
+            color: white;
+            font-size: 15px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.15s;
+            text-align: center;
+        }
+        .option-btn:hover { background: rgba(167,139,250,0.2); border-color: #a78bfa; transform: translateY(-1px); }
+        .option-btn.selected { background: rgba(124,58,237,0.35); border-color: #7c3aed; }
+        .option-btn.correct-ans { background: rgba(5,150,105,0.3); border-color: #10b981; pointer-events: none; }
+        .option-btn.wrong-ans { background: rgba(220,38,38,0.25); border-color: #ef4444; pointer-events: none; }
+        .option-btn.dim { opacity: 0.35; pointer-events: none; }
+
+        /* Hard mode input */
+        .text-input {
+            width: 100%;
+            padding: 14px 18px;
+            background: rgba(255,255,255,0.08);
+            border: 1.5px solid rgba(255,255,255,0.15);
+            border-radius: 14px;
+            color: white;
+            font-size: 18px;
+            font-weight: 600;
+            font-family: inherit;
+            outline: none;
+            margin: 16px 0;
+            transition: border-color 0.2s;
+        }
+        .text-input::placeholder { color: rgba(255,255,255,0.3); font-weight: 400; }
+        .text-input:focus { border-color: #a78bfa; }
+
+        .recall-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; margin-top: 8px; }
+
+        /* ── Feedback toast ── */
+        .feedback-toast {
+            position: fixed;
+            top: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-80px);
+            background: white;
+            color: #1a1a2e;
+            padding: 14px 24px;
+            border-radius: 50px;
+            font-size: 15px;
+            font-weight: 700;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+            z-index: 999;
+            white-space: nowrap;
+        }
+        .feedback-toast.show { transform: translateX(-50%) translateY(0); }
+        .feedback-toast.correct-toast { background: #d1fae5; color: #065f46; }
+        .feedback-toast.incorrect-toast { background: #fee2e2; color: #991b1b; }
+        .feedback-toast.skip-toast { background: #fef3c7; color: #92400e; }
+
+        /* ── Score screen ── */
+        .score-big {
+            font-size: 72px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #a78bfa, #60a5fa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1;
+            margin: 16px 0 8px;
+        }
+        .score-label { color: rgba(255,255,255,0.5); font-size: 14px; margin-bottom: 24px; }
+        .score-actions { display: flex; flex-direction: column; gap: 10px; }
+
+        .score-detail { margin: 16px 0; }
+        .score-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            font-size: 14px;
+        }
+        .score-row:last-child { border-bottom: none; }
+        .score-row .mini-face {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            overflow: hidden;
+            background: rgba(255,255,255,0.1);
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+        .score-row .mini-face img { width: 100%; height: 100%; object-fit: cover; }
+        .score-row .sname { flex: 1; font-weight: 600; }
+        .score-row .tick { font-size: 18px; }
+    </style>
+</head>
+<body>
+<div class="app">
+    <!-- ═══ HOME ═══ -->
+    <div id="homeScreen" class="screen active">
+        <div class="card" style="text-align:center; padding-top:40px; padding-bottom:40px;">
+            <div class="game-title">Name Recall Trainer</div>
+            <div class="game-subtitle">Train your face–name memory</div>
+
+            <div class="how-to" style="margin-bottom:0;">
+                <h3>How to Play</h3>
+                <div class="step"><span class="step-icon">👀</span><span>Study 5 faces — name & fun fact shown for 5 seconds each</span></div>
+                <div class="step"><span class="step-icon">🤔</span><span>Recall each name - pick from options (Easy) or type it (Hard); use of fun fact might help </span></div>
+                <div class="step"><span class="step-icon">🏆</span><span>Score out of 5 — see how many you remember!</span></div>
+            </div>
+        </div>
+
+        <div class="mode-row">
+            <button class="btn btn-primary" onclick="startGame('easy')">🥳 Easy Mode</button>
+            <button class="btn btn-secondary" onclick="startGame('hard')">🔥 Hard Mode</button>
+        </div>
+    </div>
+
+    <!-- ═══ STUDY ═══ -->
+    <div id="studyScreen" class="screen">
+        <div class="card">
+            <div class="screen-header">
+                <span class="screen-label">Study Phase</span>
+                <div class="progress-dots" id="studyDots"></div>
+                <div class="timer-ring">
+                    <svg width="56" height="56" viewBox="0 0 56 56">
+                        <circle class="timer-track" cx="28" cy="28" r="24"/>
+                        <circle class="timer-fill" id="timerCircle" cx="28" cy="28" r="24"
+                            stroke-dasharray="150.8" stroke-dashoffset="0"/>
+                    </svg>
+                    <div class="timer-num" id="timerNum">5</div>
+                </div>
+            </div>
+
+            <div class="face-wrap">
+                <div class="face" id="studyFace"></div>
+            </div>
+            <div class="person-name" id="studyName"></div>
+            <div class="person-fact" id="studyFact"></div>
+
+            <div class="study-actions">
+                <button class="btn btn-secondary" onclick="nextFace()">Next →</button>
+                <button class="btn btn-danger" onclick="skipToRecall()" style="width:auto; padding:14px 20px; font-size:13px;">Skip to Recall</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ RECALL ═══ -->
+    <div id="recallScreen" class="screen">
+        <div class="card">
+            <div class="screen-header">
+                <span class="screen-label">Recall Phase</span>
+                <div class="progress-dots" id="recallDots"></div>
+                <span id="recallCount" style="font-size:13px; color:rgba(255,255,255,0.4); font-weight:600;"></span>
+            </div>
+
+            <div class="question-label">Who is this?</div>
+            <div class="face-wrap">
+                <div class="face" id="recallFace"></div>
+            </div>
+            <div id="recallFact" style="text-align:center; font-size:13px; color:rgba(255,255,255,0.5); font-style:italic; margin: -8px 0 12px; padding: 8px 16px; background:rgba(255,255,255,0.04); border-radius:10px;"></div>
+
+            <div id="inputArea"></div>
+
+            <div class="recall-actions">
+                <button class="btn btn-success" id="checkBtn" onclick="submitAnswer()">✓ Check Answer</button>
+                <button class="btn btn-skip" onclick="skipRecall()">Skip →</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ SCORE ═══ -->
+    <div id="scoreScreen" class="screen">
+        <div class="card" style="text-align:center;">
+            <div class="screen-label" style="margin-bottom:8px;">Round Complete!</div>
+            <div class="score-big" id="scoreBig">0/5</div>
+            <div class="score-label" id="scoreLabel"></div>
+
+            <div class="score-detail" id="scoreDetail"></div>
+        </div>
+
+        <div class="score-actions">
+            <button class="btn btn-primary" onclick="newRound()">🔄 Play Again</button>
+            <button class="btn btn-secondary" onclick="goHome()">🏠 Main Menu</button>
+        </div>
+    </div>
+</div>
+
+<!-- Feedback toast -->
+<div class="feedback-toast" id="toast"></div>
+
+<script>
+const faceData = [
+    // Women — each has a unique portrait number
+    {name:"Susan",    fact:"Loves baking apple pies.",    ethnicity:"White", gender:"F", age:"older",   n:1},
+    {name:"Linda",    fact:"Collects vintage teacups.",   ethnicity:"White", gender:"F", age:"older",   n:2},
+    {name:"Patricia", fact:"Tends a rose garden.",        ethnicity:"White", gender:"F", age:"older",   n:3},
+    {name:"Emma",     fact:"Runs marathons yearly.",      ethnicity:"White", gender:"F", age:"younger", n:5},
+    {name:"Olivia",   fact:"Paints sunsets often.",       ethnicity:"White", gender:"F", age:"younger", n:6},
+    {name:"Sophia",   fact:"Writes short stories.",       ethnicity:"White", gender:"F", age:"younger", n:7},
+    {name:"Latoya",   fact:"Sings gospel songs.",         ethnicity:"Black", gender:"F", age:"older",   n:21},
+    {name:"Shanice",  fact:"Grows a herb garden.",        ethnicity:"Black", gender:"F", age:"older",   n:22},
+    {name:"Monique",  fact:"Teaches salsa dancing.",      ethnicity:"Black", gender:"F", age:"older",   n:23},
+    {name:"Aaliyah",  fact:"Dances hip-hop.",             ethnicity:"Black", gender:"F", age:"younger", n:25},
+    {name:"Nia",      fact:"Knits colorful scarves.",     ethnicity:"Black", gender:"F", age:"younger", n:26},
+    {name:"Imani",    fact:"Photographs street art.",     ethnicity:"Black", gender:"F", age:"younger", n:27},
+    {name:"Mei",      fact:"Masters origami art.",        ethnicity:"Asian", gender:"F", age:"older",   n:41},
+    {name:"Priya",    fact:"Cooks curry feasts.",         ethnicity:"Asian", gender:"F", age:"older",   n:42},
+    {name:"Yuki",     fact:"Collects vintage kimonos.",   ethnicity:"Asian", gender:"F", age:"older",   n:43},
+    {name:"Hana",     fact:"Plays classical violin.",     ethnicity:"Asian", gender:"F", age:"younger", n:45},
+    {name:"Jia",      fact:"Designs mobile apps.",        ethnicity:"Asian", gender:"F", age:"younger", n:46},
+    // Men — each has a unique portrait number
+    {name:"Robert",   fact:"Fishes every weekend.",       ethnicity:"White", gender:"M", age:"older",   n:1},
+    {name:"William",  fact:"Plays chess daily.",          ethnicity:"White", gender:"M", age:"older",   n:2},
+    {name:"Charles",  fact:"Restores vintage cars.",      ethnicity:"White", gender:"M", age:"older",   n:3},
+    {name:"Ethan",    fact:"Builds drones for fun.",      ethnicity:"White", gender:"M", age:"younger", n:5},
+    {name:"Noah",     fact:"Surfs big waves.",            ethnicity:"White", gender:"M", age:"younger", n:6},
+    {name:"Mason",    fact:"Brews his own beer.",         ethnicity:"White", gender:"M", age:"younger", n:7},
+    {name:"Leroy",    fact:"Barbecues ribs best.",        ethnicity:"Black", gender:"M", age:"older",   n:21},
+    {name:"Tyrone",   fact:"Tells tall tales.",           ethnicity:"Black", gender:"M", age:"older",   n:22},
+    {name:"Marcus",   fact:"Coaches youth football.",     ethnicity:"Black", gender:"M", age:"older",   n:23},
+    {name:"Malik",    fact:"Plays basketball.",           ethnicity:"Black", gender:"M", age:"younger", n:25},
+    {name:"Jaden",    fact:"Codes apps at night.",        ethnicity:"Black", gender:"M", age:"younger", n:26},
+    {name:"Zion",     fact:"Produces hip-hop beats.",     ethnicity:"Black", gender:"M", age:"younger", n:27},
+    {name:"Hiroshi",  fact:"Practices bonsai daily.",     ethnicity:"Asian", gender:"M", age:"older",   n:41},
+    {name:"Rajesh",   fact:"Plays tabla drums.",          ethnicity:"Asian", gender:"M", age:"older",   n:42},
+    {name:"Wei",      fact:"Writes calligraphy.",         ethnicity:"Asian", gender:"M", age:"older",   n:43},
+    {name:"Kai",      fact:"Rock-climbs weekends.",       ethnicity:"Asian", gender:"M", age:"younger", n:45},
+    {name:"Arjun",    fact:"Loves competitive chess.",    ethnicity:"Asian", gender:"M", age:"younger", n:46},
+];
+faceData.forEach(f => {
+    const g = f.gender === 'F' ? 'women' : 'men';
+    f.faceUrl = `https://randomuser.me/api/portraits/${g}/${f.n}.jpg`;
+});
+
+// All possible distractor names per pool — must have enough to fill 3 distractors
+const namePools = {
+    "White_F_older":   ["Susan","Linda","Patricia","Karen","Barbara","Dorothy","Helen"],
+    "White_F_younger": ["Emma","Olivia","Sophia","Ava","Isabella","Mia","Chloe"],
+    "White_M_older":   ["Robert","William","Charles","James","Michael","Richard","George"],
+    "White_M_younger": ["Ethan","Noah","Mason","Liam","Logan","Lucas","Owen"],
+    "Black_F_older":   ["Latoya","Shanice","Monique","Keisha","Ebony","Tasha","Renee"],
+    "Black_F_younger": ["Aaliyah","Nia","Imani","Zuri","Amara","Kaia","Destiny"],
+    "Black_M_older":   ["Leroy","Tyrone","Marcus","Darius","Jamal","DeShawn","Calvin"],
+    "Black_M_younger": ["Malik","Jaden","Zion","DeAndre","Tre","Khalil","Deon"],
+    "Asian_F_older":   ["Mei","Priya","Yuki","Akiko","Soo","Ling","Sana"],
+    "Asian_F_younger": ["Hana","Jia","Mia","Lila","Yuna","Ami","Rina"],
+    "Asian_M_older":   ["Hiroshi","Rajesh","Wei","Kim","Kenji","Taro","Sung"],
+    "Asian_M_younger": ["Kai","Arjun","Min","Jin","Ryo","Soren","Takeshi"]
+};
+
+let currentMode = 'easy';
+let currentRoundFaces = [];
+let studyIndex = 0;
+let recallIndex = 0;
+let score = 0;
+let results = [];   // {face, correct} per recall
+let timerInterval;
+let answerLocked = false;
+
+const CIRCUMFERENCE = 2 * Math.PI * 24; // 150.8
+
+// ── Helpers ────────────────────────────────────────────────────
+function makeImg(url, name) {
+    return `<img src="${url}" alt="${name}" onerror="this.style.display='none';this.parentNode.textContent='👤'">`;
+}
+
+function getRandom(arr, exclude = [], count = 3) {
+    const pool = arr.filter(n => !exclude.includes(n));
+    const out = [];
+    const copy = [...pool];
+    while (out.length < count && copy.length) {
+        const i = Math.floor(Math.random() * copy.length);
+        out.push(copy.splice(i, 1)[0]);
+    }
+    return out;
+}
+
+function buildDots(containerId, total, current) {
+    const el = document.getElementById(containerId);
+    el.innerHTML = Array.from({length: total}, (_, i) => {
+        const cls = i < current ? 'dot done' : i === current ? 'dot active' : 'dot';
+        return `<div class="${cls}"></div>`;
+    }).join('');
+}
+
+function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+}
+
+let toastTimer;
+function showToast(msg, type) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = `feedback-toast ${type}-toast show`;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+// ── Game flow ───────────────────────────────────────────────────
+function startGame(mode) {
+    currentMode = mode;
+    currentRoundFaces = [...faceData].sort(() => Math.random() - 0.5).slice(0, 5);
+    studyIndex = 0;
+    recallIndex = 0;
+    score = 0;
+    results = [];
+    showScreen('studyScreen');
+    showStudyFace();
+}
+
+function showStudyFace() {
+    const face = currentRoundFaces[studyIndex];
+    document.getElementById('studyFace').innerHTML = makeImg(face.faceUrl, face.name);
+    document.getElementById('studyName').textContent = face.name;
+    document.getElementById('studyFact').textContent = '✨ ' + face.fact;
+    buildDots('studyDots', 5, studyIndex);
+    startTimer();
+}
+
+function startTimer() {
+    let time = 5;
+    const num = document.getElementById('timerNum');
+    const circle = document.getElementById('timerCircle');
+    num.textContent = time;
+    circle.style.strokeDashoffset = 0;
+    clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+        time--;
+        num.textContent = time;
+        circle.style.strokeDashoffset = CIRCUMFERENCE * (1 - time / 5);
+        if (time <= 0) { clearInterval(timerInterval); nextFace(); }
+    }, 1000);
+}
+
+function nextFace() {
+    clearInterval(timerInterval);
+    studyIndex++;
+    if (studyIndex < 5) {
+        showStudyFace();
+    } else {
+        beginRecall();
+    }
+}
+
+function skipToRecall() {
+    clearInterval(timerInterval);
+    beginRecall();
+}
+
+function beginRecall() {
+    recallIndex = 0;
+    showScreen('recallScreen');
+    showRecallFace();
+}
+
+function showRecallFace() {
+    answerLocked = false;
+    const face = currentRoundFaces[recallIndex];
+    document.getElementById('recallFace').innerHTML = makeImg(face.faceUrl, face.name);
+    document.getElementById('recallFact').textContent = '✨ ' + face.fact;
+    document.getElementById('recallCount').textContent = `${recallIndex + 1} / 5`;
+    buildDots('recallDots', 5, recallIndex);
+
+    const inputArea = document.getElementById('inputArea');
+    document.getElementById('checkBtn').style.display = 'inline-flex';
+
+    if (currentMode === 'easy') {
+        const poolKey = `${face.ethnicity}_${face.gender}_${face.age}`;
+        const pool = namePools[poolKey] || Object.values(namePools).flat();
+        // Get 3 distractors from pool (excluding correct name), then shuffle all 4
+        const distractors = getRandom(pool, [face.name], 3);
+        const options = [face.name, ...distractors].sort(() => Math.random() - 0.5);
+
+        inputArea.innerHTML = `<div class="options-grid">` +
+            options.map(o => `<button class="option-btn" onclick="selectOption(this,'${o}')">${o}</button>`).join('') +
+            `</div>`;
+        // Hide check button — easy mode auto-checks on selection
+        document.getElementById('checkBtn').style.display = 'none';
+    } else {
+        inputArea.innerHTML = `<input class="text-input" id="nameInput" placeholder="Type the name…" autocomplete="off" onkeydown="if(event.key==='Enter') submitAnswer()">`;
+        setTimeout(() => document.getElementById('nameInput').focus(), 50);
+    }
+}
+
+// Easy mode: clicking an option immediately checks it
+function selectOption(btn, chosen) {
+    if (answerLocked) return;
+    answerLocked = true;
+
+    const face = currentRoundFaces[recallIndex];
+    const correct = chosen.toLowerCase() === face.name.toLowerCase();
+
+    // Mark all buttons
+    document.querySelectorAll('.option-btn').forEach(b => {
+        const val = b.textContent;
+        if (val === face.name) b.classList.add('correct-ans');
+        else if (b === btn && !correct) b.classList.add('wrong-ans');
+        else b.classList.add('dim');
+    });
+
+    if (correct) { score++; showToast('Correct! 🎉', 'correct'); }
+    else { showToast(`It's ${face.name}`, 'incorrect'); }
+
+    results.push({ face, correct });
+    setTimeout(advanceRecall, 1400);
+}
+
+// Hard mode: check button or Enter
+function submitAnswer() {
+    if (answerLocked) return;
+    if (currentMode === 'easy') return; // handled by selectOption
+
+    answerLocked = true;
+    const face = currentRoundFaces[recallIndex];
+    const answer = document.getElementById('nameInput').value.trim();
+    const correct = answer.toLowerCase() === face.name.toLowerCase();
+
+    if (correct) { score++; showToast('Correct! 🎉', 'correct'); }
+    else { showToast(answer ? `It's ${face.name}` : `Answer: ${face.name}`, 'incorrect'); }
+
+    results.push({ face, correct });
+    setTimeout(advanceRecall, 1400);
+}
+
+function skipRecall() {
+    if (answerLocked) return;
+    answerLocked = true;
+    const face = currentRoundFaces[recallIndex];
+    showToast(`Skipped — it was ${face.name}`, 'skip');
+    results.push({ face, correct: false });
+    setTimeout(advanceRecall, 1400);
+}
+
+function advanceRecall() {
+    recallIndex++;
+    if (recallIndex < 5) showRecallFace();
+    else showFinalScore();
+}
+
+// ── Score screen ────────────────────────────────────────────────
+function showFinalScore() {
+    document.getElementById('scoreBig').textContent = `${score}/5`;
+    const labels = ['Keep practicing!','Not bad!','Good job!','Great memory!','Perfect! 🏆'];
+    document.getElementById('scoreLabel').textContent = labels[score];
+
+    const detail = document.getElementById('scoreDetail');
+    detail.innerHTML = results.map(r => `
+        <div class="score-row">
+            <div class="mini-face">${makeImg(r.face.faceUrl, r.face.name)}</div>
+            <span class="sname">${r.face.name}</span>
+            <span class="tick">${r.correct ? '✅' : '❌'}</span>
+        </div>`).join('');
+
+    showScreen('scoreScreen');
+}
+
+function newRound() { startGame(currentMode); }
+function goHome() { showScreen('homeScreen'); }
+</script>
+</body>
+</html>
