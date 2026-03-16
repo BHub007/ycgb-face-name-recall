@@ -988,6 +988,7 @@ function advanceRecall() {
 // ── Score screen ────────────────────────────────────────────────
 function showFinalScore() {
     document.getElementById('scoreBig').textContent = `${score}/5`;
+    ProgressTracker.record({ game: 'Face Name Recall', score: score, max: 5, mode: currentMode });
     const labels = ['Keep practicing!','Not bad!','Good job!','Great memory!','Perfect! 🏆'];
     document.getElementById('scoreLabel').textContent = labels[score];
 
