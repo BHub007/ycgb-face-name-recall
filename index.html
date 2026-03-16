@@ -1006,32 +1006,6 @@ function newRound() { startGame(currentMode); }
 function goHome() { showScreen('homeScreen'); }
 
 /* ── Progress Tracker ── */
-/*
- * ProgressTracker — drop-in localStorage progress tracking for memory games
- *
- * USAGE (add to any game's HTML):
- * ─────────────────────────────────────────────────────────────────────────
- * 1. Include this script:
- *    <script src="progress-tracker.js"></script>
- *    OR paste the contents inside a <script> tag at the end of <body>.
- *
- * 2. Include the companion CSS (progress-tracker.css), or paste it in <style>.
- *
- * 3. Add the tracker button somewhere in your HTML (usually top-right):
- *    <button onclick="ProgressTracker.open()" class="pt-trigger">📊 Stats</button>
- *
- * 4. Call this once when a round finishes in your game logic:
- *    ProgressTracker.record({
- *        game:  'Face Name Recall',   // identifier for this game
- *        score: 4,                    // numeric score achieved
- *        max:   5,                    // maximum possible score
- *        mode:  'easy'                // optional: mode/difficulty label
- *    });
- *
- * That's it. The tracker handles all storage, rendering, and UI.
- * ─────────────────────────────────────────────────────────────────────────
- */
-
 const ProgressTracker = (() => {
     const STORAGE_KEY = 'memory_game_progress_v1';
     const MAX_SESSIONS_STORED = 200;
