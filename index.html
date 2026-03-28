@@ -3,295 +3,166 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Number Recall Trainer</title>
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-
+    <title> Name Recall Trainer</title>
     <style>
-        /* ── Progress Tracker — light theme ── */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
 
-        #pt-panel { pointer-events: none; }
-        #pt-panel.pt-open { pointer-events: all; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
 
-        .pt-backdrop {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.35);
-            backdrop-filter: blur(3px);
-            -webkit-backdrop-filter: blur(3px);
-            z-index: 1000;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-        #pt-panel.pt-open .pt-backdrop { opacity: 1; }
-
-        .pt-drawer {
-            position: fixed;
-            top: 0; right: 0; bottom: 0;
-            width: min(400px, 100vw);
-            background: #ffffff;
-            border-left: 1px solid #e9d5ff;
-            z-index: 1001;
+        body {
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            background: #0f0c29;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
             display: flex;
-            flex-direction: column;
-            transform: translateX(100%);
-            transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
-            box-shadow: -8px 0 40px rgba(124,58,237,0.12);
+            align-items: flex-start;
+            justify-content: center;
+            padding: 20px;
+            color: #fff;
         }
-        #pt-panel.pt-open .pt-drawer { transform: translateX(0); }
 
-        .pt-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 20px 24px;
-            border-bottom: 1px solid #f3e8ff;
-            flex-shrink: 0;
-            background: #faf5ff;
+        .app {
+            width: 100%;
+            max-width: 480px;
         }
-        .pt-header-title {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 18px;
+
+        /* ── Screens ── */
+        .screen { display: none; }
+        .screen.active { display: block; }
+
+        /* ── Card ── */
+        .card {
+            background: rgba(255,255,255,0.07);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 24px;
+            padding: 32px 28px;
+            margin-bottom: 16px;
+        }
+
+        /* ── Home screen ── */
+        .logo { font-size: 48px; margin-bottom: 8px; }
+        .game-title {
+            font-size: 28px;
             font-weight: 800;
-            color: #581c87;
-            font-family: inherit;
-            letter-spacing: -0.3px;
+            background: linear-gradient(90deg, #a78bfa, #60a5fa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 6px;
         }
-        .pt-header-icon { font-size: 22px; }
-        .pt-close-btn {
-            background: #f3e8ff;
-            border: 1px solid #e9d5ff;
-            color: #7c3aed;
+        .game-subtitle { color: rgba(255,255,255,0.55); font-size: 14px; margin-bottom: 24px; }
+
+        .how-to { text-align: left; }
+        .how-to h3 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.4); margin-bottom: 14px; }
+        .step {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 12px;
             font-size: 14px;
-            width: 32px; height: 32px;
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
-            transition: all 0.15s;
-            font-family: inherit;
+            color: rgba(255,255,255,0.8);
+            line-height: 1.5;
         }
-        .pt-close-btn:hover { background: #e9d5ff; color: #581c87; }
+        .step-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
 
-        .pt-scroll {
-            overflow-y: auto;
-            flex: 1;
-            padding: 20px 24px 40px;
-            scrollbar-width: thin;
-            scrollbar-color: #c4b5fd transparent;
-        }
-        .pt-scroll::-webkit-scrollbar { width: 4px; }
-        .pt-scroll::-webkit-scrollbar-thumb { background: #c4b5fd; border-radius: 4px; }
+        .mode-row { display: flex; gap: 12px; margin-top: 24px; }
 
-        .pt-empty {
-            text-align: center;
-            padding: 60px 20px;
-            color: #a78bfa;
-        }
-        .pt-empty-icon { font-size: 48px; margin-bottom: 16px; }
-        .pt-empty-title { font-size: 16px; font-weight: 700; color: #7c3aed; margin-bottom: 8px; }
-        .pt-empty-sub { font-size: 13px; line-height: 1.6; color: #a78bfa; }
-
-        .pt-overview {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            margin-bottom: 24px;
-        }
-        .pt-pill {
-            background: #faf5ff;
-            border: 1px solid #e9d5ff;
+        /* ── Buttons ── */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px 24px;
+            border: none;
             border-radius: 14px;
-            padding: 12px 8px;
-            text-align: center;
-        }
-        .pt-pill-val {
-            font-size: 22px;
-            font-weight: 800;
-            color: #7c3aed;
-            line-height: 1;
-            margin-bottom: 4px;
-        }
-        .pt-pill-lbl {
-            font-size: 10px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            color: #a78bfa;
-        }
-
-        .pt-section-title {
-            font-size: 11px;
+            font-size: 15px;
             font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1.2px;
-            color: #a78bfa;
-            margin: 20px 0 10px;
+            font-family: inherit;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+            width: 100%;
+        }
+        .btn:hover { transform: translateY(-2px); }
+        .btn:active { transform: translateY(0); }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #7c3aed, #4f46e5);
+            color: white;
+            box-shadow: 0 4px 20px rgba(124,58,237,0.4);
+        }
+        .btn-primary:hover { box-shadow: 0 8px 28px rgba(124,58,237,0.55); }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.15);
+            box-shadow: none;
+        }
+        .btn-secondary:hover { background: rgba(255,255,255,0.18); }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            color: white;
+            box-shadow: 0 4px 16px rgba(220,38,38,0.35);
         }
 
-        .pt-game-cards { display: flex; flex-direction: column; gap: 10px; }
-
-        .pt-game-card {
-            background: #faf5ff;
-            border: 1px solid #e9d5ff;
-            border-radius: 16px;
-            padding: 14px 16px;
-            transition: border-color 0.2s;
+        .btn-skip {
+            background: rgba(255,255,255,0.08);
+            color: rgba(255,255,255,0.6);
+            border: 1px solid rgba(255,255,255,0.1);
+            font-size: 13px;
+            padding: 10px 20px;
+            width: auto;
         }
-        .pt-game-card:hover { border-color: #c4b5fd; }
+        .btn-skip:hover { color: white; background: rgba(255,255,255,0.15); }
 
-        .pt-game-header {
+        .btn-success {
+            background: linear-gradient(135deg, #059669, #047857);
+            color: white;
+            box-shadow: 0 4px 16px rgba(5,150,105,0.35);
+        }
+
+        /* ── Study screen ── */
+        .screen-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 10px;
+            margin-bottom: 20px;
         }
-        .pt-game-name {
-            font-size: 14px;
+        .screen-label {
+            font-size: 12px;
             font-weight: 700;
-            color: #4c1d95;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: rgba(255,255,255,0.4);
+        }
+
+        .progress-dots {
             display: flex;
-            align-items: center;
             gap: 6px;
         }
-        .pt-mode-badge {
-            font-size: 10px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            background: #ede9fe;
-            color: #7c3aed;
-            padding: 2px 7px;
-            border-radius: 6px;
-            border: 1px solid #ddd6fe;
+        .dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            transition: background 0.3s;
         }
-        .pt-trend {
-            font-size: 20px;
-            font-weight: 800;
-            line-height: 1;
-        }
+        .dot.active { background: #a78bfa; }
+        .dot.done { background: rgba(167,139,250,0.4); }
 
-        .pt-game-metrics {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 8px;
-            margin-bottom: 12px;
-        }
-        .pt-metric { text-align: center; }
-        .pt-metric-val {
-            font-size: 16px;
-            font-weight: 800;
-            color: #4c1d95;
-            line-height: 1;
-            margin-bottom: 2px;
-        }
-        .pt-metric-lbl {
-            font-size: 10px;
-            color: #a78bfa;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .pt-sparkline-wrap { position: relative; }
-        .pt-sparkline {
-            width: 100%;
-            height: 36px;
-            display: block;
-        }
-        .pt-sparkline-label {
-            font-size: 10px;
-            color: #c4b5fd;
-            text-align: right;
-            margin-top: 2px;
-        }
-
-        .pt-history { display: flex; flex-direction: column; gap: 8px; }
-
-        .pt-history-row {
-            display: grid;
-            grid-template-columns: 1fr auto auto auto;
-            align-items: center;
-            gap: 10px;
-            padding: 8px 0;
-            border-bottom: 1px solid #f3e8ff;
-        }
-        .pt-history-row:last-child { border-bottom: none; }
-
-        .pt-history-game {
-            font-size: 12px;
-            font-weight: 600;
-            color: #6d28d9;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            min-width: 0;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        .pt-history-score {
-            font-size: 13px;
-            font-weight: 800;
-            white-space: nowrap;
-        }
-        .pt-bar-track {
-            width: 48px;
-            height: 4px;
-            background: #ede9fe;
-            border-radius: 4px;
-            overflow: hidden;
-        }
-        .pt-bar-fill {
-            height: 100%;
-            border-radius: 4px;
-            transition: width 0.5s ease;
-        }
-        .pt-history-date {
-            font-size: 10px;
-            color: #c4b5fd;
-            text-align: right;
-            line-height: 1.4;
-            white-space: nowrap;
-        }
-        .pt-history-date span { opacity: 0.7; }
-
-        .pt-clear-btn {
-            margin-top: 28px;
-            width: 100%;
-            background: transparent;
-            border: 1px solid #fca5a5;
-            color: #ef4444;
-            padding: 10px;
-            border-radius: 10px;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            font-family: inherit;
-            transition: all 0.2s;
-        }
-        .pt-clear-btn:hover {
-            background: #fef2f2;
-            border-color: #f87171;
-        }
-
-        /* ── Study timer ring ── */
-        .nr-timer-ring {
+        .timer-ring {
             position: relative;
             width: 56px; height: 56px;
             flex-shrink: 0;
         }
-        .nr-timer-ring svg { transform: rotate(-90deg); }
-        .nr-timer-ring circle { fill: none; stroke-width: 4; }
-        .nr-timer-track { stroke: rgba(124,58,237,0.15); }
-        .nr-timer-fill {
-            stroke: #7c3aed;
-            stroke-linecap: round;
-            transition: stroke-dashoffset 1s linear;
-        }
-        .nr-timer-num {
+        .timer-ring svg { transform: rotate(-90deg); }
+        .timer-ring circle { fill: none; stroke-width: 4; }
+        .timer-track { stroke: rgba(255,255,255,0.1); }
+        .timer-fill { stroke: #a78bfa; stroke-linecap: round; transition: stroke-dashoffset 1s linear; }
+        .timer-num {
             position: absolute;
             inset: 0;
             display: flex;
@@ -299,577 +170,1126 @@
             justify-content: center;
             font-size: 18px;
             font-weight: 800;
-            color: #7c3aed;
+            color: #a78bfa;
         }
 
+        /* ── Face photo ── */
+        .face-wrap {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0 16px;
+        }
+        .face {
+            width: 160px; height: 160px;
+            border-radius: 50%;
+            overflow: hidden;
+            background: rgba(255,255,255,0.1);
+            border: 3px solid rgba(167,139,250,0.5);
+            box-shadow: 0 0 0 6px rgba(167,139,250,0.1), 0 12px 40px rgba(0,0,0,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 52px;
+        }
+        .face img { width: 100%; height: 100%; object-fit: cover; }
+
+        .person-name {
+            font-size: 30px;
+            font-weight: 800;
+            text-align: center;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #e2e8f0, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .person-fact {
+            text-align: center;
+            font-size: 14px;
+            color: rgba(255,255,255,0.6);
+            font-style: italic;
+            line-height: 1.5;
+            padding: 10px 16px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .study-actions { display: flex; gap: 10px; }
+
+        /* ── Recall screen ── */
+        .question-label {
+            text-align: center;
+            font-size: 13px;
+            font-weight: 600;
+            color: rgba(255,255,255,0.45);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+        }
+
+        /* Easy mode buttons */
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 16px 0;
+        }
+        .option-btn {
+            background: rgba(255,255,255,0.07);
+            border: 1.5px solid rgba(255,255,255,0.12);
+            border-radius: 14px;
+            padding: 14px 10px;
+            color: white;
+            font-size: 15px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.15s;
+            text-align: center;
+        }
+        .option-btn:hover { background: rgba(167,139,250,0.2); border-color: #a78bfa; transform: translateY(-1px); }
+        .option-btn.selected { background: rgba(124,58,237,0.35); border-color: #7c3aed; }
+        .option-btn.correct-ans { background: rgba(5,150,105,0.3); border-color: #10b981; pointer-events: none; }
+        .option-btn.wrong-ans { background: rgba(220,38,38,0.25); border-color: #ef4444; pointer-events: none; }
+        .option-btn.dim { opacity: 0.35; pointer-events: none; }
+
+        /* Hard mode input */
+        .text-input {
+            width: 100%;
+            padding: 14px 18px;
+            background: rgba(255,255,255,0.08);
+            border: 1.5px solid rgba(255,255,255,0.15);
+            border-radius: 14px;
+            color: white;
+            font-size: 18px;
+            font-weight: 600;
+            font-family: inherit;
+            outline: none;
+            margin: 16px 0;
+            transition: border-color 0.2s;
+        }
+        .text-input::placeholder { color: rgba(255,255,255,0.3); font-weight: 400; }
+        .text-input:focus { border-color: #a78bfa; }
+
+        .recall-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; margin-top: 8px; }
+
         /* ── Feedback toast ── */
-        .nr-toast {
+        .feedback-toast {
             position: fixed;
             top: 24px;
             left: 50%;
             transform: translateX(-50%) translateY(-80px);
+            background: white;
+            color: #1a1a2e;
             padding: 14px 24px;
             border-radius: 50px;
             font-size: 15px;
             font-weight: 700;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
             transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
             z-index: 999;
             white-space: nowrap;
-            pointer-events: none;
         }
-        .nr-toast.show { transform: translateX(-50%) translateY(0); }
-        .nr-toast.correct  { background: #d1fae5; color: #065f46; }
-        .nr-toast.incorrect { background: #fee2e2; color: #991b1b; }
+        .feedback-toast.show { transform: translateX(-50%) translateY(0); }
+        .feedback-toast.correct-toast { background: #d1fae5; color: #065f46; }
+        .feedback-toast.incorrect-toast { background: #fee2e2; color: #991b1b; }
+        .feedback-toast.skip-toast { background: #fef3c7; color: #92400e; }
+
+        /* ── Score screen ── */
+        .score-big {
+            font-size: 72px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #a78bfa, #60a5fa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1;
+            margin: 16px 0 8px;
+        }
+        .score-label { color: rgba(255,255,255,0.5); font-size: 14px; margin-bottom: 24px; }
+        .score-actions { display: flex; flex-direction: column; gap: 10px; }
+
+        .score-detail { margin: 16px 0; }
+        .score-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            font-size: 14px;
+        }
+        .score-row:last-child { border-bottom: none; }
+        .score-row .mini-face {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            overflow: hidden;
+            background: rgba(255,255,255,0.1);
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+        .score-row .mini-face img { width: 100%; height: 100%; object-fit: cover; }
+        .score-row .sname { flex: 1; font-weight: 600; }
+        .score-row .tick { font-size: 18px; }
+
+/* ── Progress Tracker ── */
+/* ── Progress Tracker — drop-in styles ───────────────────────────────────── */
+
+/* Trigger button — add class pt-trigger to your stats button */
+.pt-trigger {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 900;
+    background: rgba(255,255,255,0.12);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: white;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: inherit;
+    padding: 8px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.15s;
+    letter-spacing: 0.3px;
+}
+.pt-trigger:hover {
+    background: rgba(255,255,255,0.22);
+    transform: translateY(-1px);
+}
+
+/* ── Panel shell ── */
+#pt-panel { pointer-events: none; }
+#pt-panel.pt-open { pointer-events: all; }
+
+.pt-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+#pt-panel.pt-open .pt-backdrop { opacity: 1; }
+
+.pt-drawer {
+    position: fixed;
+    top: 0; right: 0; bottom: 0;
+    width: min(400px, 100vw);
+    background: #0f0c29;
+    background: linear-gradient(160deg, #1a1535 0%, #0f0c29 100%);
+    border-left: 1px solid rgba(124,58,237,0.25);
+    z-index: 1001;
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+    box-shadow: -8px 0 40px rgba(0,0,0,0.5);
+}
+#pt-panel.pt-open .pt-drawer { transform: translateX(0); }
+
+/* ── Header ── */
+.pt-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    flex-shrink: 0;
+}
+.pt-header-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 18px;
+    font-weight: 800;
+    color: white;
+    font-family: inherit;
+    letter-spacing: -0.3px;
+}
+.pt-header-icon { font-size: 22px; }
+.pt-close-btn {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.6);
+    font-size: 14px;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+    font-family: inherit;
+}
+.pt-close-btn:hover { background: rgba(255,255,255,0.15); color: white; }
+
+/* ── Scrollable body ── */
+.pt-scroll {
+    overflow-y: auto;
+    flex: 1;
+    padding: 20px 24px 40px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(124,58,237,0.4) transparent;
+}
+.pt-scroll::-webkit-scrollbar { width: 4px; }
+.pt-scroll::-webkit-scrollbar-thumb { background: rgba(124,58,237,0.4); border-radius: 4px; }
+
+/* ── Empty state ── */
+.pt-empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: rgba(255,255,255,0.4);
+}
+.pt-empty-icon { font-size: 48px; margin-bottom: 16px; }
+.pt-empty-title { font-size: 16px; font-weight: 700; color: rgba(255,255,255,0.6); margin-bottom: 8px; }
+.pt-empty-sub { font-size: 13px; line-height: 1.6; }
+
+/* ── Overview pills ── */
+.pt-overview {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 24px;
+}
+.pt-pill {
+    background: rgba(124,58,237,0.15);
+    border: 1px solid rgba(124,58,237,0.25);
+    border-radius: 14px;
+    padding: 12px 8px;
+    text-align: center;
+}
+.pt-pill-val {
+    font-size: 22px;
+    font-weight: 800;
+    color: white;
+    line-height: 1;
+    margin-bottom: 4px;
+}
+.pt-pill-lbl {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: rgba(255,255,255,0.4);
+}
+
+/* ── Section titles ── */
+.pt-section-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: rgba(255,255,255,0.35);
+    margin: 20px 0 10px;
+}
+
+/* ── Game cards ── */
+.pt-game-cards { display: flex; flex-direction: column; gap: 10px; }
+
+.pt-game-card {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.09);
+    border-radius: 16px;
+    padding: 14px 16px;
+    transition: border-color 0.2s;
+}
+.pt-game-card:hover { border-color: rgba(124,58,237,0.4); }
+
+.pt-game-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+.pt-game-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.pt-mode-badge {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: rgba(124,58,237,0.3);
+    color: #a78bfa;
+    padding: 2px 7px;
+    border-radius: 6px;
+    border: 1px solid rgba(124,58,237,0.3);
+}
+.pt-trend {
+    font-size: 20px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.pt-game-metrics {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 12px;
+}
+.pt-metric { text-align: center; }
+.pt-metric-val {
+    font-size: 16px;
+    font-weight: 800;
+    color: white;
+    line-height: 1;
+    margin-bottom: 2px;
+}
+.pt-metric-lbl {
+    font-size: 10px;
+    color: rgba(255,255,255,0.35);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.pt-sparkline-wrap { position: relative; }
+.pt-sparkline {
+    width: 100%;
+    height: 36px;
+    display: block;
+}
+.pt-sparkline-label {
+    font-size: 10px;
+    color: rgba(255,255,255,0.25);
+    text-align: right;
+    margin-top: 2px;
+}
+
+/* ── History rows ── */
+.pt-history { display: flex; flex-direction: column; gap: 8px; }
+
+.pt-history-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto auto;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.pt-history-row:last-child { border-bottom: none; }
+
+.pt-history-game {
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.7);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.pt-history-score {
+    font-size: 13px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+.pt-bar-track {
+    width: 48px;
+    height: 4px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 4px;
+    overflow: hidden;
+}
+.pt-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s ease;
+}
+.pt-history-date {
+    font-size: 10px;
+    color: rgba(255,255,255,0.3);
+    text-align: right;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+.pt-history-date span { opacity: 0.7; }
+
+/* ── Clear button ── */
+.pt-clear-btn {
+    margin-top: 28px;
+    width: 100%;
+    background: transparent;
+    border: 1px solid rgba(239,68,68,0.3);
+    color: rgba(239,68,68,0.6);
+    padding: 10px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+}
+.pt-clear-btn:hover {
+    background: rgba(239,68,68,0.1);
+    border-color: rgba(239,68,68,0.6);
+    color: #f87171;
+}
+        
     </style>
 </head>
 <body>
-    <div id="root"></div>
+<div class="app">
+    <!-- ═══ HOME ═══ -->
+    <div id="homeScreen" class="screen active">
+        <div class="card" style="text-align:center; padding-top:40px; padding-bottom:40px;">
+            <div class="game-title">Name Recall Trainer</div>
+            <div class="game-subtitle">Train your face–name memory</div>
 
-    <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+            <div class="how-to" style="margin-bottom:0;">
+                <h3>How to Play</h3>
+                <div class="step"><span class="step-icon">👀</span><span>Study 5 faces — name & fun fact shown for 5 seconds each</span></div>
+                <div class="step"><span class="step-icon">🤔</span><span>Recall each name - pick from options (Easy) or type it (Hard); fun facts might help your recall </span></div>
+                <div class="step"><span class="step-icon">🏆</span><span>Score out of 5 — see how many you remember!</span></div>
+            </div>
+        </div>    
+        <button class="pt-trigger" onclick="ProgressTracker.open()">&#128202; Stats</button>
+        <div class="mode-row">
+            <button class="btn btn-primary" onclick="startGame('easy')">🥳 Easy Mode</button>
+            <button class="btn btn-secondary" onclick="startGame('hard')">🔥 Hard Mode</button>
+        </div>
+    </div>
 
-        // ── Lucide icons ──────────────────────────────────────────────────────
-        const Brain = ({ className }) => (
-            <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-            </svg>
-        );
-        const RotateCcw = ({ className }) => (
-            <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-        );
-        const Play = ({ className }) => (
-            <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-        );
-        const ChartBar = ({ className }) => (
-            <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-            </svg>
-        );
-
-        // ── ProgressTracker (light theme, separate storage key) ───────────────
-        const ProgressTracker = (() => {
-            const STORAGE_KEY = 'nr_progress_v1'; // separate from face_recall
-
-            function load() {
-                try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
-                catch { return []; }
-            }
-            function save(sessions) {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
-            }
-
-            function record({ game, score, max, mode = '' }) {
-                if (!game || score == null || max == null) return;
-                const sessions = load();
-                sessions.push({ game, score, max, mode, pct: Math.round((score / max) * 100), ts: Date.now() });
-                save(sessions);
-                if (document.getElementById('pt-panel')?.classList.contains('pt-open')) renderPanel();
-            }
-
-            function clearAll() {
-                if (confirm('Clear all progress history? This cannot be undone.')) {
-                    localStorage.removeItem(STORAGE_KEY);
-                    renderPanel();
-                }
-            }
-
-            function computeStats(sessions) {
-                if (!sessions.length) return null;
-                const byGame = {};
-                sessions.forEach(s => { if (!byGame[s.game]) byGame[s.game] = []; byGame[s.game].push(s); });
-                const gameStats = Object.entries(byGame).map(([name, rows]) => {
-                    const pcts = rows.map(r => r.pct);
-                    const avg = Math.round(pcts.reduce((a,b)=>a+b,0)/pcts.length);
-                    const best = Math.max(...pcts);
-                    const last = rows[rows.length-1];
-                    const recent = pcts.slice(-3), prior = pcts.slice(-6,-3);
-                    let trend = '—';
-                    if (prior.length && recent.length) {
-                        const rAvg = recent.reduce((a,b)=>a+b,0)/recent.length;
-                        const pAvg = prior.reduce((a,b)=>a+b,0)/prior.length;
-                        trend = rAvg > pAvg+5 ? '↑' : rAvg < pAvg-5 ? '↓' : '→';
-                    }
-                    return { name, rows, avg, best, last, trend, count: rows.length };
-                });
-                const allPcts = sessions.map(s=>s.pct);
-                const overallAvg = Math.round(allPcts.reduce((a,b)=>a+b,0)/allPcts.length);
-                const streak = computeStreak(sessions);
-                return { gameStats, overallAvg, totalSessions: sessions.length, streak };
-            }
-
-            function computeStreak(sessions) {
-                if (!sessions.length) return 0;
-                const days = new Set(sessions.map(s=>new Date(s.ts).toDateString()));
-                let streak = 0;
-                const d = new Date();
-                while (days.has(d.toDateString())) { streak++; d.setDate(d.getDate()-1); }
-                return streak;
-            }
-
-            function sparklinePath(values, w, h) {
-                if (values.length < 2) return '';
-                const xStep = w / (values.length-1);
-                const pts = values.map((v,i) => `${i*xStep},${h-((v/100)*h)}`);
-                return 'M'+pts.join('L');
-            }
-
-            function formatDate(ts) { return new Date(ts).toLocaleDateString(undefined,{month:'short',day:'numeric'}); }
-            function formatTime(ts) { return new Date(ts).toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'}); }
-
-            function renderPanel() {
-                const panel = document.getElementById('pt-panel');
-                if (!panel) return;
-                const sessions = load();
-                const stats = computeStats(sessions);
-
-                if (!stats) {
-                    panel.querySelector('.pt-body').innerHTML = `
-                        <div class="pt-empty">
-                            <div class="pt-empty-icon">🎮</div>
-                            <div class="pt-empty-title">No games played yet</div>
-                            <div class="pt-empty-sub">Complete a round to start tracking your progress.</div>
-                        </div>`;
-                    return;
-                }
-
-                const gameCardsHtml = stats.gameStats.map(g => {
-                    const sparkW=120, sparkH=36;
-                    const recentPcts = g.rows.slice(-20).map(r=>r.pct);
-                    const path = sparklinePath(recentPcts, sparkW, sparkH);
-                    const trendColor = g.trend==='↑'?'#10b981':g.trend==='↓'?'#f87171':'#94a3b8';
-                    const avgColor = g.avg>=80?'#10b981':g.avg>=50?'#f59e0b':'#f87171';
-                    return `
-                    <div class="pt-game-card">
-                        <div class="pt-game-header">
-                            <div class="pt-game-name">${g.name}</div>
-                            <div class="pt-trend" style="color:${trendColor}">${g.trend}</div>
-                        </div>
-                        <div class="pt-game-metrics">
-                            <div class="pt-metric">
-                                <div class="pt-metric-val" style="color:${avgColor}">${g.avg}%</div>
-                                <div class="pt-metric-lbl">avg</div>
-                            </div>
-                            <div class="pt-metric">
-                                <div class="pt-metric-val">${g.best}%</div>
-                                <div class="pt-metric-lbl">best</div>
-                            </div>
-                            <div class="pt-metric">
-                                <div class="pt-metric-val">${g.count}</div>
-                                <div class="pt-metric-lbl">played</div>
-                            </div>
-                            <div class="pt-metric">
-                                <div class="pt-metric-val">${g.last.score}/${g.last.max}</div>
-                                <div class="pt-metric-lbl">last</div>
-                            </div>
-                        </div>
-                        <div class="pt-sparkline-wrap">
-                            <svg viewBox="0 0 ${sparkW} ${sparkH}" class="pt-sparkline" preserveAspectRatio="none">
-                                <path d="${path}" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-                                <path d="${path}L${sparkW},${sparkH}L0,${sparkH}Z" fill="url(#pt-grad)" opacity="0.18"/>
-                                <defs>
-                                    <linearGradient id="pt-grad" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="0%" stop-color="#7c3aed"/>
-                                        <stop offset="100%" stop-color="#7c3aed" stop-opacity="0"/>
-                                    </linearGradient>
-                                </defs>
-                            </svg>
-                            <div class="pt-sparkline-label">last ${recentPcts.length} sessions</div>
-                        </div>
-                    </div>`;
-                }).join('');
-
-                const recent = sessions.slice(-10).reverse();
-                const historyHtml = recent.map(s => {
-                    const pctColor = s.pct>=80?'#10b981':s.pct>=50?'#f59e0b':'#f87171';
-                    const bar = `<div class="pt-bar-track"><div class="pt-bar-fill" style="width:${s.pct}%;background:${pctColor}"></div></div>`;
-                    return `
-                    <div class="pt-history-row">
-                        <div class="pt-history-game">${s.game}</div>
-                        <div class="pt-history-score" style="color:${pctColor}">${s.score}/${s.max}</div>
-                        ${bar}
-                        <div class="pt-history-date">${formatDate(s.ts)}<br><span>${formatTime(s.ts)}</span></div>
-                    </div>`;
-                }).join('');
-
-                panel.querySelector('.pt-body').innerHTML = `
-                    <div class="pt-overview">
-                        <div class="pt-pill">
-                            <div class="pt-pill-val">${stats.totalSessions}</div>
-                            <div class="pt-pill-lbl">Total Rounds</div>
-                        </div>
-                        <div class="pt-pill">
-                            <div class="pt-pill-val">${stats.overallAvg}%</div>
-                            <div class="pt-pill-lbl">Overall Avg</div>
-                        </div>
-                        <div class="pt-pill">
-                            <div class="pt-pill-val">${stats.streak}🔥</div>
-                            <div class="pt-pill-lbl">Day Streak</div>
-                        </div>
-                    </div>
-                    <div class="pt-section-title">Performance</div>
-                    <div class="pt-game-cards">${gameCardsHtml}</div>
-                    <div class="pt-section-title">Recent Sessions</div>
-                    <div class="pt-history">${historyHtml}</div>
-                    <button class="pt-clear-btn" onclick="NRProgressTracker.clearAll()">🗑 Clear all history</button>
-                `;
-            }
-
-            function injectDOM() {
-                if (document.getElementById('pt-panel')) return;
-                const panel = document.createElement('div');
-                panel.id = 'pt-panel';
-                panel.innerHTML = `
-                    <div class="pt-backdrop" onclick="NRProgressTracker.close()"></div>
-                    <div class="pt-drawer">
-                        <div class="pt-header">
-                            <div class="pt-header-title">
-                                <span class="pt-header-icon">📈</span>
-                                Progress
-                            </div>
-                            <button class="pt-close-btn" onclick="NRProgressTracker.close()">✕</button>
-                        </div>
-                        <div class="pt-body pt-scroll"></div>
-                    </div>
-                `;
-                document.body.appendChild(panel);
-            }
-
-            function open() {
-                injectDOM();
-                renderPanel();
-                requestAnimationFrame(() => {
-                    document.getElementById('pt-panel').classList.add('pt-open');
-                });
-            }
-
-            function close() {
-                document.getElementById('pt-panel')?.classList.remove('pt-open');
-            }
-
-            document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
-
-            return { record, open, close, clearAll };
-        })();
-
-        // Expose globally so the drawer's inline onclick can reach it
-        window.NRProgressTracker = ProgressTracker;
-
-        // ── Main game component ───────────────────────────────────────────────
-        function MemoryExercise() {
-            const [gameState, setGameState] = useState('menu');
-            const [sequence, setSequence] = useState([]);
-            const [currentRecallStep, setCurrentRecallStep] = useState(0);
-            const [userInput, setUserInput] = useState('');
-            const [userAnswers, setUserAnswers] = useState([]);
-            const [score, setScore] = useState({ correct: 0, total: 0 });
-            const [recallPattern, setRecallPattern] = useState([]);
-            const [timerSeconds, setTimerSeconds] = useState(3);
-            const timerRef = useRef(null);
-            const toastTimerRef = useRef(null);
-            const CIRCUMFERENCE = 2 * Math.PI * 24;
-
-            const showToast = (msg, type) => {
-                const t = document.getElementById('nr-toast');
-                if (!t) return;
-                clearTimeout(toastTimerRef.current);
-                t.textContent = msg;
-                t.className = `nr-toast ${type} show`;
-                toastTimerRef.current = setTimeout(() => t.classList.remove('show'), 1600);
-            }; // 150.8
-
-            // Run countdown timer during 'showing' phase
-            useEffect(() => {
-                if (gameState === 'showing') {
-                    setTimerSeconds(3);
-                    let t = 3;
-                    timerRef.current = setInterval(() => {
-                        t--;
-                        setTimerSeconds(t);
-                        if (t <= 0) {
-                            clearInterval(timerRef.current);
-                            setGameState('recalling');
-                        }
-                    }, 1000);
-                }
-                return () => clearInterval(timerRef.current);
-            }, [gameState]);
-
-            const generateRecallPattern = () => {
-                const pattern = [0,1,2,3,4];
-                for (let i = 0; i < 5; i++) {
-                    pattern.push(Math.floor(Math.random() * 5));
-                }
-                return pattern;
-            };
-
-            const startGame = () => {
-                const newSequence = Array.from({ length: 5 }, () => Math.floor(Math.random() * 10));
-                const newPattern = generateRecallPattern();
-                setSequence(newSequence);
-                setRecallPattern(newPattern);
-                setCurrentRecallStep(0);
-                setUserAnswers([]);
-                setScore({ correct: 0, total: 0 });
-                setGameState('showing');
-            };
-
-            const handleSubmit = (e) => {
-                e.preventDefault();
-                const targetPosition = recallPattern[currentRecallStep];
-                const correctNumber = sequence[targetPosition];
-                const isCorrect = parseInt(userInput) === correctNumber;
-
-                const newScore = {
-                    correct: score.correct + (isCorrect ? 1 : 0),
-                    total: score.total + 1
-                };
-                setScore(newScore);
-
-                const newAnswers = [...userAnswers, {
-                    recallStep: currentRecallStep,
-                    targetPosition,
-                    userAnswer: parseInt(userInput),
-                    correctAnswer: correctNumber,
-                    isCorrect
-                }];
-                setUserAnswers(newAnswers);
-
-                if (isCorrect) {
-                    showToast('✓ Correct!', 'correct');
-                } else {
-                    showToast(`✗ Incorrect — position ${targetPosition + 1} was ${correctNumber}`, 'incorrect');
-                }
-
-                setUserInput('');
-
-                const delay = isCorrect ? 1000 : 2500;
-                setTimeout(() => {
-                    const nextStep = currentRecallStep + 1;
-                    if (nextStep < recallPattern.length) {
-                        setCurrentRecallStep(nextStep);
-                    } else {
-                        ProgressTracker.record({
-                            game: 'Number Recall',
-                            score: newScore.correct,
-                            max: newScore.total
-                        });
-                        setGameState('completed');
-                    }
-                }, delay);
-            };
-
-            const resetGame = () => {
-                setGameState('menu');
-                setSequence([]);
-                setCurrentRecallStep(0);
-                setUserInput('');
-                setUserAnswers([]);
-                setScore({ correct: 0, total: 0 });
-            };
-
-            return (
-                <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center p-2 sm:p-4">
-                    <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8 w-full max-w-full sm:max-w-md mx-2 sm:mx-4">
-
-                        {/* Header */}
-                        <div className="flex items-center justify-center mb-4 sm:mb-6">
-                            <Brain className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-purple-600 mr-2 sm:mr-3" />
-                            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800">Number Recall Trainer</h1>
-                        </div>
-
-                        {/* ── Menu ── */}
-                        {gameState === 'menu' && (
-                            <div className="text-center">
-                                <h2 className="text-lg sm:text-xl font-semibold text-purple-600 mb-3 sm:mb-4">
-                                    Train your working memory!
-                                </h2>
-                                <div className="text-left bg-purple-50 rounded-lg p-3 sm:p-5 mb-4 sm:mb-6 text-gray-700">
-                                    <p className="font-semibold mb-2 sm:mb-3 text-sm sm:text-base">How it works:</p>
-                                    <ol className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
-                                        <li className="flex">
-                                            <span className="font-bold text-purple-600 mr-2">👀</span>
-                                            <span>Study <strong>5 digits</strong> — memorize digits AND their position for 3 seconds</span>
-                                        </li>
-                                        <li className="flex">
-                                            <span className="font-bold text-purple-600 mr-2">🤔</span>
-                                            <span>Recall <strong>both the digits AND their positions</strong></span>
-                                        </li>
-                                        <li className="flex">
-                                            <span className="font-bold text-purple-600 mr-2">🏆</span>
-                                            <span>Score out of <strong>10 times</strong> — see how many you remember in a randomized pattern</span>
-                                        </li>
-                                    </ol>
-                                </div>
-                                <button
-                                    onClick={startGame}
-                                    className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2.5 sm:py-3 px-6 sm:px-8 rounded-lg flex items-center justify-center mx-auto transition-colors shadow-lg text-sm sm:text-base"
-                                >
-                                    <Play className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                                    Start Exercise
-                                </button>
-                            </div>
-                        )}
-
-                        {/* ── Showing digits ── */}
-                        {gameState === 'showing' && (
-                            <div>
-                                <div className="flex items-center justify-between mb-3 sm:mb-4">
-                                    <div className="text-xs sm:text-sm text-gray-600">
-                                        Memorize these digits AND their positions...
-                                    </div>
-                                    {/* Timer ring — face_recall animation, number recall purple */}
-                                    <div className="nr-timer-ring">
-                                        <svg width="56" height="56" viewBox="0 0 56 56">
-                                            <circle className="nr-timer-track" cx="28" cy="28" r="24"/>
-                                            <circle
-                                                className="nr-timer-fill"
-                                                cx="28" cy="28" r="24"
-                                                strokeDasharray={CIRCUMFERENCE}
-                                                strokeDashoffset={CIRCUMFERENCE * (1 - timerSeconds / 3)}
-                                            />
-                                        </svg>
-                                        <div className="nr-timer-num">{timerSeconds}</div>
-                                    </div>
-                                </div>
-                                <div className="bg-gradient-to-r from-purple-100 to-pink-100 rounded-xl p-4 sm:p-6 md:p-8">
-                                    <div className="flex justify-center gap-2 sm:gap-3 md:gap-4">
-                                        {sequence.map((digit, index) => (
-                                            <div key={index} className="flex flex-col items-center">
-                                                <div className="text-[10px] sm:text-xs text-purple-600 font-semibold mb-1">Pos {index+1}</div>
-                                                <div className="w-12 h-16 sm:w-14 sm:h-18 md:w-16 md:h-20 bg-white rounded-lg shadow-lg flex items-center justify-center text-2xl sm:text-3xl md:text-4xl font-bold text-purple-600">
-                                                    {digit}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* ── Recalling ── */}
-                        {gameState === 'recalling' && (
-                            <div>
-                                <div className="text-center mb-4 sm:mb-6">
-                                    <div className="text-xs sm:text-sm text-gray-500 mb-1 sm:mb-2">
-                                        Recall step {currentRecallStep+1} of 10
-                                    </div>
-                                    <div className="text-base sm:text-lg font-semibold text-purple-600 mb-1 sm:mb-2">
-                                        Enter the digit from position {recallPattern[currentRecallStep]+1}
-                                    </div>
-                                    <div className="text-xs sm:text-sm text-gray-500">
-                                        Score: {score.correct} / {score.total}
-                                    </div>
-                                </div>
-
-                                <div className="bg-gray-50 rounded-xl p-3 sm:p-4 md:p-6 mb-3 sm:mb-4">
-                                    <div className="flex justify-center gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6">
-                                        {Array.from({ length: 5 }).map((_, index) => {
-                                            const answers = userAnswers.filter(a => a.targetPosition === index);
-                                            const isCurrentTarget = recallPattern[currentRecallStep] === index;
-                                            const correctCount = answers.filter(a => a.isCorrect).length;
-                                            const totalCount = answers.length;
-                                            return (
-                                                <div key={index} className="flex flex-col items-center">
-                                                    <div className="text-[10px] sm:text-xs text-purple-600 font-semibold mb-1">Pos {index+1}</div>
-                                                    <div className={`w-12 h-16 sm:w-14 sm:h-18 md:w-16 md:h-20 rounded-lg flex items-center justify-center text-base sm:text-lg md:text-xl font-bold border-2 ${
-                                                        isCurrentTarget
-                                                            ? 'bg-purple-100 border-purple-400 border-dashed animate-pulse'
-                                                            : totalCount > 0
-                                                            ? correctCount === totalCount
-                                                                ? 'bg-green-100 border-green-400 text-green-700'
-                                                                : 'bg-red-100 border-red-400 text-red-700'
-                                                            : 'bg-gray-100 border-gray-300'
-                                                    }`}>
-                                                        {totalCount > 0 ? `${correctCount}/${totalCount}` : isCurrentTarget ? '?' : ''}
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-
-                                    <form onSubmit={handleSubmit}>
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            max="9"
-                                            value={userInput}
-                                            onChange={(e) => setUserInput(e.target.value)}
-                                            className="w-full text-2xl sm:text-3xl md:text-4xl text-center border-2 border-purple-300 rounded-lg p-3 sm:p-4 focus:outline-none focus:border-purple-600"
-                                            autoFocus
-                                            required
-                                            placeholder="?"
-                                        />
-                                        <button
-                                            type="submit"
-                                            className="w-full mt-3 sm:mt-4 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2.5 sm:py-3 rounded-lg transition-colors text-sm sm:text-base"
-                                        >
-                                            Submit
-                                        </button>
-                                    </form>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* ── Completed ── */}
-                        {gameState === 'completed' && (
-                            <div className="text-center">
-                                <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-3 sm:mb-4">Round Complete!</h2>
-
-                                <div className="bg-gradient-to-r from-purple-100 to-pink-100 rounded-xl p-4 sm:p-6 mb-4 sm:mb-6">
-                                    <div className="text-4xl sm:text-5xl font-bold text-purple-600 mb-2">
-                                        {score.correct} / {score.total}
-                                    </div>
-                                    <div className="text-gray-700 mb-3 sm:mb-4 text-sm sm:text-base">
-                                        {Math.round((score.correct / score.total) * 100)}% accuracy
-                                    </div>
-
-                                    <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-purple-200">
-                                        <div className="text-xs sm:text-sm text-gray-600 mb-2">The sequence was:</div>
-                                        <div className="flex justify-center gap-1.5 sm:gap-2">
-                                            {sequence.map((digit, index) => (
-                                                <div
-                                                    key={index}
-                                                    className="w-8 h-10 sm:w-10 sm:h-12 bg-white rounded-lg shadow flex items-center justify-center text-lg sm:text-xl font-bold text-purple-600"
-                                                >
-                                                    {digit}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Action buttons */}
-                                <div className="flex gap-3 justify-center">
-                                    <button
-                                        onClick={resetGame}
-                                        className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2.5 sm:py-3 px-5 sm:px-6 rounded-lg flex items-center justify-center transition-colors text-sm sm:text-base"
-                                    >
-                                        <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                                        New Round
-                                    </button>
-                                    <button
-                                        onClick={() => ProgressTracker.open()}
-                                        className="bg-white hover:bg-purple-50 text-purple-600 font-semibold py-2.5 sm:py-3 px-5 sm:px-6 rounded-lg flex items-center justify-center transition-colors text-sm sm:text-base border-2 border-purple-300 hover:border-purple-400"
-                                    >
-                                        <ChartBar className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                                        Stats
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                    </div>
+    <!-- ═══ STUDY ═══ -->
+    <div id="studyScreen" class="screen">
+        <div class="card">
+            <div class="screen-header">
+                <span class="screen-label">Study Phase</span>
+                <div class="progress-dots" id="studyDots"></div>
+                <div class="timer-ring">
+                    <svg width="56" height="56" viewBox="0 0 56 56">
+                        <circle class="timer-track" cx="28" cy="28" r="24"/>
+                        <circle class="timer-fill" id="timerCircle" cx="28" cy="28" r="24"
+                            stroke-dasharray="150.8" stroke-dashoffset="0"/>
+                    </svg>
+                    <div class="timer-num" id="timerNum">5</div>
                 </div>
-            );
+            </div>
+
+            <div class="face-wrap">
+                <div class="face" id="studyFace"></div>
+            </div>
+            <div class="person-name" id="studyName"></div>
+            <div class="person-fact" id="studyFact"></div>
+
+            <div class="study-actions">
+                <button class="btn btn-secondary" onclick="nextFace()">Next →</button>
+                <button class="btn btn-danger" onclick="skipToRecall()" style="width:auto; padding:14px 20px; font-size:13px;">Skip to Recall</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ RECALL ═══ -->
+    <div id="recallScreen" class="screen">
+        <div class="card">
+            <div class="screen-header">
+                <span class="screen-label">Recall Phase</span>
+                <div class="progress-dots" id="recallDots"></div>
+                <span id="recallCount" style="font-size:13px; color:rgba(255,255,255,0.4); font-weight:600;"></span>
+            </div>
+
+            <div class="question-label">Who is this?</div>
+            <div class="face-wrap">
+                <div class="face" id="recallFace"></div>
+            </div>
+            <div id="recallFact" style="text-align:center; font-size:13px; color:rgba(255,255,255,0.5); font-style:italic; margin: -8px 0 12px; padding: 8px 16px; background:rgba(255,255,255,0.04); border-radius:10px;"></div>
+
+            <div id="inputArea"></div>
+
+            <div class="recall-actions">
+                <button class="btn btn-success" id="checkBtn" onclick="submitAnswer()">✓ Check Answer</button>
+                <button class="btn btn-skip" onclick="skipRecall()">Skip →</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ SCORE ═══ -->
+    <div id="scoreScreen" class="screen">
+        <div class="card" style="text-align:center;">
+            <div class="screen-label" style="margin-bottom:8px;">Round Complete!</div>
+            <div class="score-big" id="scoreBig">0/5</div>
+            <div class="score-label" id="scoreLabel"></div>
+
+            <div class="score-detail" id="scoreDetail"></div>
+        </div>
+
+        <div class="score-actions">
+            <button class="btn btn-primary" onclick="newRound()">🔄 Play Again</button>
+            <button class="btn btn-secondary" onclick="goHome()">🏠 Main Menu</button>
+        </div>
+    </div>
+</div>
+
+<!-- Feedback toast -->
+<div class="feedback-toast" id="toast"></div>
+
+<script>
+const faceData = [
+    // Women — each has a unique portrait number
+    {name:"Susan",    fact:"Loves baking apple pies.",    ethnicity:"White", gender:"F", age:"older",   n:1},
+    {name:"Linda",    fact:"Collects vintage teacups.",   ethnicity:"White", gender:"F", age:"older",   n:2},
+    {name:"Patricia", fact:"Tends a rose garden.",        ethnicity:"White", gender:"F", age:"older",   n:3},
+    {name:"Emma",     fact:"Runs marathons yearly.",      ethnicity:"White", gender:"F", age:"younger", n:5},
+    {name:"Olivia",   fact:"Paints sunsets often.",       ethnicity:"White", gender:"F", age:"younger", n:6},
+    {name:"Sophia",   fact:"Writes short stories.",       ethnicity:"White", gender:"F", age:"younger", n:7},
+    {name:"Latoya",   fact:"Sings gospel songs.",         ethnicity:"Black", gender:"F", age:"older",   n:21},
+    {name:"Shanice",  fact:"Grows a herb garden.",        ethnicity:"Black", gender:"F", age:"older",   n:22},
+    {name:"Monique",  fact:"Teaches salsa dancing.",      ethnicity:"Black", gender:"F", age:"older",   n:23},
+    {name:"Aaliyah",  fact:"Dances hip-hop.",             ethnicity:"Black", gender:"F", age:"younger", n:25},
+    {name:"Nia",      fact:"Knits colorful scarves.",     ethnicity:"Black", gender:"F", age:"younger", n:26},
+    {name:"Imani",    fact:"Photographs street art.",     ethnicity:"Black", gender:"F", age:"younger", n:27},
+    {name:"Mei",      fact:"Masters origami art.",        ethnicity:"Asian", gender:"F", age:"older",   n:41},
+    {name:"Priya",    fact:"Cooks curry feasts.",         ethnicity:"Asian", gender:"F", age:"older",   n:42},
+    {name:"Yuki",     fact:"Collects vintage kimonos.",   ethnicity:"Asian", gender:"F", age:"older",   n:43},
+    {name:"Hana",     fact:"Plays classical violin.",     ethnicity:"Asian", gender:"F", age:"younger", n:45},
+    {name:"Jia",      fact:"Designs mobile apps.",        ethnicity:"Asian", gender:"F", age:"younger", n:46},
+    // Men — each has a unique portrait number
+    {name:"Robert",   fact:"Fishes every weekend.",       ethnicity:"White", gender:"M", age:"older",   n:1},
+    {name:"William",  fact:"Plays chess daily.",          ethnicity:"White", gender:"M", age:"older",   n:2},
+    {name:"Charles",  fact:"Restores vintage cars.",      ethnicity:"White", gender:"M", age:"older",   n:3},
+    {name:"Ethan",    fact:"Builds drones for fun.",      ethnicity:"White", gender:"M", age:"younger", n:5},
+    {name:"Noah",     fact:"Surfs big waves.",            ethnicity:"White", gender:"M", age:"younger", n:6},
+    {name:"Mason",    fact:"Brews his own beer.",         ethnicity:"White", gender:"M", age:"younger", n:7},
+    {name:"Leroy",    fact:"Barbecues ribs best.",        ethnicity:"Black", gender:"M", age:"older",   n:21},
+    {name:"Tyrone",   fact:"Tells tall tales.",           ethnicity:"Black", gender:"M", age:"older",   n:22},
+    {name:"Marcus",   fact:"Coaches youth football.",     ethnicity:"Black", gender:"M", age:"older",   n:23},
+    {name:"Malik",    fact:"Plays basketball.",           ethnicity:"Black", gender:"M", age:"younger", n:25},
+    {name:"Jaden",    fact:"Codes apps at night.",        ethnicity:"Black", gender:"M", age:"younger", n:26},
+    {name:"Zion",     fact:"Produces hip-hop beats.",     ethnicity:"Black", gender:"M", age:"younger", n:27},
+    {name:"Hiroshi",  fact:"Practices bonsai daily.",     ethnicity:"Asian", gender:"M", age:"older",   n:41},
+    {name:"Rajesh",   fact:"Plays tabla drums.",          ethnicity:"Asian", gender:"M", age:"older",   n:42},
+    {name:"Wei",      fact:"Writes calligraphy.",         ethnicity:"Asian", gender:"M", age:"older",   n:43},
+    {name:"Kai",      fact:"Rock-climbs weekends.",       ethnicity:"Asian", gender:"M", age:"younger", n:45},
+    {name:"Arjun",    fact:"Loves competitive chess.",    ethnicity:"Asian", gender:"M", age:"younger", n:46},
+];
+faceData.forEach(f => {
+    const g = f.gender === 'F' ? 'women' : 'men';
+    f.faceUrl = `https://randomuser.me/api/portraits/${g}/${f.n}.jpg`;
+});
+
+// All possible distractor names per pool — must have enough to fill 3 distractors
+const namePools = {
+    "White_F_older":   ["Susan","Linda","Patricia","Karen","Barbara","Dorothy","Helen"],
+    "White_F_younger": ["Emma","Olivia","Sophia","Ava","Isabella","Mia","Chloe"],
+    "White_M_older":   ["Robert","William","Charles","James","Michael","Richard","George"],
+    "White_M_younger": ["Ethan","Noah","Mason","Liam","Logan","Lucas","Owen"],
+    "Black_F_older":   ["Latoya","Shanice","Monique","Keisha","Ebony","Tasha","Renee"],
+    "Black_F_younger": ["Aaliyah","Nia","Imani","Zuri","Amara","Kaia","Destiny"],
+    "Black_M_older":   ["Leroy","Tyrone","Marcus","Darius","Jamal","DeShawn","Calvin"],
+    "Black_M_younger": ["Malik","Jaden","Zion","DeAndre","Tre","Khalil","Deon"],
+    "Asian_F_older":   ["Mei","Priya","Yuki","Akiko","Soo","Ling","Sana"],
+    "Asian_F_younger": ["Hana","Jia","Mia","Lila","Yuna","Ami","Rina"],
+    "Asian_M_older":   ["Hiroshi","Rajesh","Wei","Kim","Kenji","Taro","Sung"],
+    "Asian_M_younger": ["Kai","Arjun","Min","Jin","Ryo","Soren","Takeshi"]
+};
+
+let currentMode = 'easy';
+let currentRoundFaces = [];
+let studyIndex = 0;
+let recallIndex = 0;
+let score = 0;
+let results = [];   // {face, correct} per recall
+let timerInterval;
+let answerLocked = false;
+
+const CIRCUMFERENCE = 2 * Math.PI * 24; // 150.8
+
+// ── Helpers ────────────────────────────────────────────────────
+function makeImg(url, name) {
+    return `<img src="${url}" alt="${name}" onerror="this.style.display='none';this.parentNode.textContent='👤'">`;
+}
+
+function getRandom(arr, exclude = [], count = 3) {
+    const pool = arr.filter(n => !exclude.includes(n));
+    const out = [];
+    const copy = [...pool];
+    while (out.length < count && copy.length) {
+        const i = Math.floor(Math.random() * copy.length);
+        out.push(copy.splice(i, 1)[0]);
+    }
+    return out;
+}
+
+function buildDots(containerId, total, current) {
+    const el = document.getElementById(containerId);
+    el.innerHTML = Array.from({length: total}, (_, i) => {
+        const cls = i < current ? 'dot done' : i === current ? 'dot active' : 'dot';
+        return `<div class="${cls}"></div>`;
+    }).join('');
+}
+
+function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+}
+
+let toastTimer;
+function showToast(msg, type) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = `feedback-toast ${type}-toast show`;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+// ── Game flow ───────────────────────────────────────────────────
+function startGame(mode) {
+    currentMode = mode;
+    currentRoundFaces = [...faceData].sort(() => Math.random() - 0.5).slice(0, 5);
+    studyIndex = 0;
+    recallIndex = 0;
+    score = 0;
+    results = [];
+    showScreen('studyScreen');
+    showStudyFace();
+}
+
+function showStudyFace() {
+    const face = currentRoundFaces[studyIndex];
+    document.getElementById('studyFace').innerHTML = makeImg(face.faceUrl, face.name);
+    document.getElementById('studyName').textContent = face.name;
+    document.getElementById('studyFact').textContent = '✨ ' + face.fact;
+    buildDots('studyDots', 5, studyIndex);
+    startTimer();
+}
+
+function startTimer() {
+    let time = 5;
+    const num = document.getElementById('timerNum');
+    const circle = document.getElementById('timerCircle');
+    num.textContent = time;
+    circle.style.strokeDashoffset = 0;
+    clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+        time--;
+        num.textContent = time;
+        circle.style.strokeDashoffset = CIRCUMFERENCE * (1 - time / 5);
+        if (time <= 0) { clearInterval(timerInterval); nextFace(); }
+    }, 1000);
+}
+
+function nextFace() {
+    clearInterval(timerInterval);
+    studyIndex++;
+    if (studyIndex < 5) {
+        showStudyFace();
+    } else {
+        beginRecall();
+    }
+}
+
+function skipToRecall() {
+    clearInterval(timerInterval);
+    beginRecall();
+}
+
+function beginRecall() {
+    recallIndex = 0;
+    showScreen('recallScreen');
+    showRecallFace();
+}
+
+function showRecallFace() {
+    answerLocked = false;
+    const face = currentRoundFaces[recallIndex];
+    document.getElementById('recallFace').innerHTML = makeImg(face.faceUrl, face.name);
+    document.getElementById('recallFact').textContent = '✨ ' + face.fact;
+    document.getElementById('recallCount').textContent = `${recallIndex + 1} / 5`;
+    buildDots('recallDots', 5, recallIndex);
+
+    const inputArea = document.getElementById('inputArea');
+    document.getElementById('checkBtn').style.display = 'inline-flex';
+
+    if (currentMode === 'easy') {
+        const poolKey = `${face.ethnicity}_${face.gender}_${face.age}`;
+        const pool = namePools[poolKey] || Object.values(namePools).flat();
+        // Get 3 distractors from pool (excluding correct name), then shuffle all 4
+        const distractors = getRandom(pool, [face.name], 3);
+        const options = [face.name, ...distractors].sort(() => Math.random() - 0.5);
+
+        inputArea.innerHTML = `<div class="options-grid">` +
+            options.map(o => `<button class="option-btn" onclick="selectOption(this,'${o}')">${o}</button>`).join('') +
+            `</div>`;
+        // Hide check button — easy mode auto-checks on selection
+        document.getElementById('checkBtn').style.display = 'none';
+    } else {
+        inputArea.innerHTML = `<input class="text-input" id="nameInput" placeholder="Type the name…" autocomplete="off" onkeydown="if(event.key==='Enter') submitAnswer()">`;
+        setTimeout(() => document.getElementById('nameInput').focus(), 50);
+    }
+}
+
+// Easy mode: clicking an option immediately checks it
+function selectOption(btn, chosen) {
+    if (answerLocked) return;
+    answerLocked = true;
+
+    const face = currentRoundFaces[recallIndex];
+    const correct = chosen.toLowerCase() === face.name.toLowerCase();
+
+    // Mark all buttons
+    document.querySelectorAll('.option-btn').forEach(b => {
+        const val = b.textContent;
+        if (val === face.name) b.classList.add('correct-ans');
+        else if (b === btn && !correct) b.classList.add('wrong-ans');
+        else b.classList.add('dim');
+    });
+
+    if (correct) { score++; showToast('Correct! 🎉', 'correct'); }
+    else { showToast(`It's ${face.name}`, 'incorrect'); }
+
+    results.push({ face, correct });
+    setTimeout(advanceRecall, 1400);
+}
+
+// Hard mode: check button or Enter
+function submitAnswer() {
+    if (answerLocked) return;
+    if (currentMode === 'easy') return; // handled by selectOption
+
+    answerLocked = true;
+    const face = currentRoundFaces[recallIndex];
+    const answer = document.getElementById('nameInput').value.trim();
+    const correct = answer.toLowerCase() === face.name.toLowerCase();
+
+    if (correct) { score++; showToast('Correct! 🎉', 'correct'); }
+    else { showToast(answer ? `It's ${face.name}` : `Answer: ${face.name}`, 'incorrect'); }
+
+    results.push({ face, correct });
+    setTimeout(advanceRecall, 1400);
+}
+
+function skipRecall() {
+    if (answerLocked) return;
+    answerLocked = true;
+    const face = currentRoundFaces[recallIndex];
+    showToast(`Skipped — it was ${face.name}`, 'skip');
+    results.push({ face, correct: false });
+    setTimeout(advanceRecall, 1400);
+}
+
+function advanceRecall() {
+    recallIndex++;
+    if (recallIndex < 5) showRecallFace();
+    else showFinalScore();
+}
+
+// ── Score screen ────────────────────────────────────────────────
+function showFinalScore() {
+    document.getElementById('scoreBig').textContent = `${score}/5`;
+    ProgressTracker.record({ game: 'Face Name Recall', score: score, max: 5, mode: currentMode });
+    const labels = ['Keep practicing!','Not bad!','Good job!','Great memory!','Perfect! 🏆'];
+    document.getElementById('scoreLabel').textContent = labels[score];
+
+    const detail = document.getElementById('scoreDetail');
+    detail.innerHTML = results.map(r => `
+        <div class="score-row">
+            <div class="mini-face">${makeImg(r.face.faceUrl, r.face.name)}</div>
+            <span class="sname">${r.face.name}</span>
+            <span class="tick">${r.correct ? '✅' : '❌'}</span>
+        </div>`).join('');
+
+    showScreen('scoreScreen');
+}
+
+function newRound() { startGame(currentMode); }
+function goHome() { showScreen('homeScreen'); }
+
+/* ── Progress Tracker ── */
+const ProgressTracker = (() => {
+    const STORAGE_KEY = 'memory_game_progress_v1';
+    const MAX_SESSIONS_STORED = 200;
+
+    // ── Storage helpers ────────────────────────────────────────────────────
+
+    function load() {
+        try {
+            return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        } catch { return []; }
+    }
+
+    function save(sessions) {
+        try {
+            // Keep only the most recent MAX_SESSIONS_STORED entries
+            const trimmed = sessions.slice(-MAX_SESSIONS_STORED);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
+        } catch (e) {
+            console.warn('ProgressTracker: could not save to localStorage', e);
+        }
+    }
+
+    // ── Public API ─────────────────────────────────────────────────────────
+
+    /**
+     * Record a completed game session.
+     * @param {object} opts
+     * @param {string} opts.game   - Game name/identifier
+     * @param {number} opts.score  - Score achieved
+     * @param {number} opts.max    - Maximum possible score
+     * @param {string} [opts.mode] - Optional mode label (e.g. 'easy', 'hard')
+     */
+    function record({ game, score, max, mode = '' }) {
+        if (!game || score == null || max == null) {
+            console.warn('ProgressTracker.record: missing required fields'); return;
+        }
+        const sessions = load();
+        sessions.push({
+            game,
+            score,
+            max,
+            mode,
+            pct: Math.round((score / max) * 100),
+            ts: Date.now()
+        });
+        save(sessions);
+        // Refresh panel if open
+        if (document.getElementById('pt-panel')?.classList.contains('pt-open')) {
+            renderPanel();
+        }
+    }
+
+    function clearAll() {
+        if (confirm('Clear all progress history? This cannot be undone.')) {
+            localStorage.removeItem(STORAGE_KEY);
+            renderPanel();
+        }
+    }
+
+    // ── Stats computation ──────────────────────────────────────────────────
+
+    function computeStats(sessions) {
+        if (!sessions.length) return null;
+
+        // Group by game
+        const byGame = {};
+        sessions.forEach(s => {
+            if (!byGame[s.game]) byGame[s.game] = [];
+            byGame[s.game].push(s);
+        });
+
+        const gameStats = Object.entries(byGame).map(([name, rows]) => {
+            const pcts = rows.map(r => r.pct);
+            const avg = Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length);
+            const best = Math.max(...pcts);
+            const last = rows[rows.length - 1];
+            // Trend: compare last 3 vs previous 3
+            const recent = pcts.slice(-3);
+            const prior  = pcts.slice(-6, -3);
+            let trend = '—';
+            if (prior.length && recent.length) {
+                const rAvg = recent.reduce((a,b)=>a+b,0)/recent.length;
+                const pAvg = prior.reduce((a,b)=>a+b,0)/prior.length;
+                trend = rAvg > pAvg + 5 ? '↑' : rAvg < pAvg - 5 ? '↓' : '→';
+            }
+            return { name, rows, avg, best, last, trend, count: rows.length };
+        });
+
+        // Overall across all games
+        const allPcts = sessions.map(s => s.pct);
+        const overallAvg = Math.round(allPcts.reduce((a,b)=>a+b,0) / allPcts.length);
+        const totalSessions = sessions.length;
+        const streak = computeStreak(sessions);
+
+        return { gameStats, overallAvg, totalSessions, streak };
+    }
+
+    function computeStreak(sessions) {
+        // Count consecutive days with at least one session (from today backwards)
+        if (!sessions.length) return 0;
+        const days = new Set(sessions.map(s => new Date(s.ts).toDateString()));
+        let streak = 0;
+        const d = new Date();
+        while (days.has(d.toDateString())) {
+            streak++;
+            d.setDate(d.getDate() - 1);
+        }
+        return streak;
+    }
+
+    // ── Chart helpers ──────────────────────────────────────────────────────
+
+    function sparklinePath(values, w, h) {
+        if (values.length < 2) return '';
+        const min = 0, max = 100;
+        const xStep = w / (values.length - 1);
+        const pts = values.map((v, i) => {
+            const x = i * xStep;
+            const y = h - ((v - min) / (max - min)) * h;
+            return `${x},${y}`;
+        });
+        return 'M' + pts.join('L');
+    }
+
+    // ── Render ─────────────────────────────────────────────────────────────
+
+    function formatDate(ts) {
+        return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    }
+    function formatTime(ts) {
+        return new Date(ts).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function renderPanel() {
+        const panel = document.getElementById('pt-panel');
+        if (!panel) return;
+        const sessions = load();
+        const stats = computeStats(sessions);
+
+        if (!stats) {
+            panel.querySelector('.pt-body').innerHTML = `
+                <div class="pt-empty">
+                    <div class="pt-empty-icon">🎮</div>
+                    <div class="pt-empty-title">No games played yet</div>
+                    <div class="pt-empty-sub">Complete a round to start tracking your progress.</div>
+                </div>`;
+            return;
         }
 
-        ReactDOM.render(<MemoryExercise />, document.getElementById('root'));
-    </script>
-    <div id="nr-toast" class="nr-toast"></div>
+        const gameCardsHtml = stats.gameStats.map(g => {
+            const sparkW = 120, sparkH = 36;
+            const recentPcts = g.rows.slice(-20).map(r => r.pct);
+            const path = sparklinePath(recentPcts, sparkW, sparkH);
+            const trendColor = g.trend === '↑' ? '#10b981' : g.trend === '↓' ? '#f87171' : '#94a3b8';
+            const avgColor = g.avg >= 80 ? '#10b981' : g.avg >= 50 ? '#f59e0b' : '#f87171';
+            const modeLabel = g.last.mode ? `<span class="pt-mode-badge">${g.last.mode}</span>` : '';
+
+            return `
+            <div class="pt-game-card">
+                <div class="pt-game-header">
+                    <div class="pt-game-name">${g.name} ${modeLabel}</div>
+                    <div class="pt-trend" style="color:${trendColor}">${g.trend}</div>
+                </div>
+                <div class="pt-game-metrics">
+                    <div class="pt-metric">
+                        <div class="pt-metric-val" style="color:${avgColor}">${g.avg}%</div>
+                        <div class="pt-metric-lbl">avg</div>
+                    </div>
+                    <div class="pt-metric">
+                        <div class="pt-metric-val">${g.best}%</div>
+                        <div class="pt-metric-lbl">best</div>
+                    </div>
+                    <div class="pt-metric">
+                        <div class="pt-metric-val">${g.count}</div>
+                        <div class="pt-metric-lbl">played</div>
+                    </div>
+                    <div class="pt-metric">
+                        <div class="pt-metric-val">${g.last.score}/${g.last.max}</div>
+                        <div class="pt-metric-lbl">last</div>
+                    </div>
+                </div>
+                <div class="pt-sparkline-wrap">
+                    <svg viewBox="0 0 ${sparkW} ${sparkH}" class="pt-sparkline" preserveAspectRatio="none">
+                        <path d="${path}" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+                        <path d="${path}L${sparkW},${sparkH}L0,${sparkH}Z" fill="url(#pt-grad)" opacity="0.25"/>
+                        <defs>
+                            <linearGradient id="pt-grad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#7c3aed"/>
+                                <stop offset="100%" stop-color="#7c3aed" stop-opacity="0"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                    <div class="pt-sparkline-label">last ${recentPcts.length} sessions</div>
+                </div>
+            </div>`;
+        }).join('');
+
+        // Recent history table (last 10)
+        const recent = sessions.slice(-10).reverse();
+        const historyHtml = recent.map(s => {
+            const pctColor = s.pct >= 80 ? '#10b981' : s.pct >= 50 ? '#f59e0b' : '#f87171';
+            const bar = `<div class="pt-bar-track"><div class="pt-bar-fill" style="width:${s.pct}%;background:${pctColor}"></div></div>`;
+            return `
+            <div class="pt-history-row">
+                <div class="pt-history-game">${s.game}${s.mode ? ` <span class="pt-mode-badge">${s.mode}</span>` : ''}</div>
+                <div class="pt-history-score" style="color:${pctColor}">${s.score}/${s.max}</div>
+                ${bar}
+                <div class="pt-history-date">${formatDate(s.ts)}<br><span>${formatTime(s.ts)}</span></div>
+            </div>`;
+        }).join('');
+
+        panel.querySelector('.pt-body').innerHTML = `
+            <!-- Overview pills -->
+            <div class="pt-overview">
+                <div class="pt-pill">
+                    <div class="pt-pill-val">${stats.totalSessions}</div>
+                    <div class="pt-pill-lbl">Total Rounds</div>
+                </div>
+                <div class="pt-pill">
+                    <div class="pt-pill-val">${stats.overallAvg}%</div>
+                    <div class="pt-pill-lbl">Overall Avg</div>
+                </div>
+                <div class="pt-pill">
+                    <div class="pt-pill-val">${stats.streak}🔥</div>
+                    <div class="pt-pill-lbl">Day Streak</div>
+                </div>
+            </div>
+
+            <!-- Per-game cards -->
+            <div class="pt-section-title">By Game</div>
+            <div class="pt-game-cards">${gameCardsHtml}</div>
+
+            <!-- Recent history -->
+            <div class="pt-section-title">Recent Sessions</div>
+            <div class="pt-history">${historyHtml}</div>
+
+            <button class="pt-clear-btn" onclick="ProgressTracker.clearAll()">🗑 Clear all history</button>
+        `;
+    }
+
+    // ── Panel DOM ──────────────────────────────────────────────────────────
+
+    function injectDOM() {
+        if (document.getElementById('pt-panel')) return;
+
+        const panel = document.createElement('div');
+        panel.id = 'pt-panel';
+        panel.innerHTML = `
+            <div class="pt-backdrop" onclick="ProgressTracker.close()"></div>
+            <div class="pt-drawer">
+                <div class="pt-header">
+                    <div class="pt-header-title">
+                        <span class="pt-header-icon">📈</span>
+                        Progress
+                    </div>
+                    <button class="pt-close-btn" onclick="ProgressTracker.close()">✕</button>
+                </div>
+                <div class="pt-body pt-scroll"></div>
+            </div>
+        `;
+        document.body.appendChild(panel);
+    }
+
+    function open() {
+        injectDOM();
+        renderPanel();
+        requestAnimationFrame(() => {
+            document.getElementById('pt-panel').classList.add('pt-open');
+        });
+    }
+
+    function close() {
+        document.getElementById('pt-panel')?.classList.remove('pt-open');
+    }
+
+    // Keyboard close
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') close();
+    });
+
+    return { record, open, close, clearAll };
+})();
+
+</script>
 </body>
 </html>
